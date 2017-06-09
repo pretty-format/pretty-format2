@@ -1,7 +1,7 @@
 // @flow
 'use strict';
 
-const style = require('ansi-styles');
+const ansiStyles = require('ansi-styles');
 
 /*::
 export type Colors = {
@@ -12,7 +12,21 @@ export type Colors = {
   value: {close: string, open: string},
 };
 
-export type Plugin = (value: mixed, stack: Stack, env: Env) => void;
+export type PluginFunction = (value: mixed, stack: Stack, env: Env, refs: Refs) => void;
+
+export type PluginObject = {
+  test(value: mixed): boolean,
+  print(
+    val: any,
+    serialize: mixed => string,
+    indent: string => string,
+    opts: Options,
+    colors: Colors,
+  ): string,
+};
+
+export type Plugin = PluginFunction | PluginObject;
+
 export type Plugins = Array<Plugin>;
 
 export type InitialTheme = {
@@ -59,6 +73,7 @@ export type Options = {|
 
 export type Env = {
   opts: Options,
+  colors: Colors,
 };
 */
 
@@ -109,6 +124,7 @@ const ARRAY_LIKE_TYPES = {
   '[object Uint32Array]': 'Uint32Array',
 };
 
+const NEWLINE = '\n';
 const EMPTY = '';
 const SPACE = ' ';
 const QUOTE = '"';
@@ -130,6 +146,8 @@ const SET_MAX_PRINTED = '[Set]';
 const OBJECT_MAX_PRINTED = '[Object]';
 const FUNCTION_OPEN_PRINTED = '[Function ';
 const ARRAY_LIKE_EMPTY_PRINTED = ' []';
+
+const NEWLINE_REGEXP = /\n/gi;
 
 const STRING_REGEXP = /"|\\/g;
 const STRING_REPLACE = '\\$&';
@@ -381,13 +399,52 @@ function printSet(value, stack, env) {
   stack.push(SET_PRINTED_OPEN);
 }
 
-function printLiteralValue(value) {
-  if (value === TRUE_VAL) return TRUE_PRINTED;
-  if (value === FALSE_VAL) return FALSE_PRINTED;
-  if (value === NULL_VAL) return NULL_PRINTED;
+function printPlugin(value, stack, env, refs, depth) {
+  let plugins = env.opts.plugins;
+  let colors = env.colors;
+  let plugin;
+
+ for (let p = 0; p < plugins.length; p++) {
+   let current = plugins[p];
+   if (typeof current === 'function') {
+     let result = current(value, stack, env, refs);
+     if (result) return current;
+   } else {
+     if (plugins[p].test(value)) {
+       plugin = plugins[p];
+       break;
+     }
+   }
+ }
+
+ if (!plugin) {
+   return null;
+ }
+
+ function print(value) {
+   return printStack(value, depth + 1, refs, env);
+ }
+
+ function indent(str) {
+   let indentation = createIndent((depth + 1) * env.opts.indent);
+   return indentation + str;
+ }
+
+ const opts = {
+   edgeSpacing: env.opts.edgeSpacing,
+   min: env.opts.min,
+   spacing: env.opts.spacing,
+ };
+
+ return plugin.print(value, print, indent, opts, colors);
 }
 
 function printValue(value, stack, env, refs, depth) {
+  if (env.opts.plugins.length) {
+    let printed = printPlugin(value, stack, env, refs, depth);
+    if (printed !== null) return printed;
+  }
+
   if (value === TRUE_VAL) return TRUE_PRINTED;
   if (value === FALSE_VAL) return FALSE_PRINTED;
   if (value === NULL_VAL) return NULL_PRINTED;
@@ -454,12 +511,9 @@ function printValue(value, stack, env, refs, depth) {
   return printObject(value, stack, env);
 }
 
-function printStack(value, env /*: Env */) {
+function printStack(value, depth, refs, env /*: Env */) {
   let result = '';
-  let depth = 0;
-
-  var stack = new Stack();
-  var refs = new Refs();
+  let stack = new Stack();
 
   stack.push(value);
 
@@ -476,7 +530,7 @@ function printStack(value, env /*: Env */) {
       refs.up();
     } else if (val === NEWLINE_OP) {
       if (!env.opts.min) {
-        result = result + '\n' + createIndent(depth * env.opts.indent);
+        result = result + NEWLINE + createIndent(depth * env.opts.indent);
       }
     } else {
       let res = printValue(val, stack, env, refs, depth);
@@ -550,12 +604,42 @@ function normalizeOptions(opts /*: ?InitialOptions */) /*: Options */ {
   return result;
 }
 
-function prettyFormat(value /*: mixed */, opts /*: ?InitialOptions */) {
-  let env = {
-    opts: normalizeOptions(opts),
+function assertColor(key, val, color) {
+  if (!color || typeof color.close !== 'string' || typeof color.open !== 'string') {
+    throw new Error(`pretty-format: Option "theme" has a key "${key}" whose value "${val}" is undefined in ansi-styles.`);
+  }
+}
+
+function createColors(opts) {
+  let colors /*: Colors */ = {
+    comment: {close: '', open: ''},
+    content: {close: '', open: ''},
+    prop: {close: '', open: ''},
+    tag: {close: '', open: ''},
+    value: {close: '', open: ''},
   };
 
-  return printStack(value, env);
+  if (opts.highlight) {
+    Object.keys(opts.theme).forEach(key => {
+      let val = opts.theme[key];
+      let color = ansiStyles[val];
+      assertColor(key, val, color);
+      colors[key] = color;
+    });
+  }
+
+  return colors;
+}
+
+function prettyFormat(value /*: mixed */, options /*: ?InitialOptions */) {
+  let opts = normalizeOptions(options);
+  let colors = createColors(opts);
+
+  let env = { opts, colors };
+  let refs = new Refs();
+  let depth = 0;
+
+  return printStack(value, depth, refs, env);
 }
 
 module.exports = prettyFormat;

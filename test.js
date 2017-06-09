@@ -357,6 +357,27 @@ describe('prettyFormat()', () => {
     ).toEqual('Object {\n  [called]: [called],\n}');
   });
 
+  it('supports indenting in plugins properly', () => {
+    const val = { a: [{ b: [{ c: [{ d: null }] }] }] };
+
+    expect(
+      prettyFormat(val, {
+        plugins: [{
+          print(val, print, indent) {
+            let res = 'List\n';
+            res += indent(val.map(item => {
+              return '- ' + print(item);
+            }).join('\n'));
+            return res;
+          },
+          test(val) {
+            return Array.isArray(val);
+          },
+        }],
+      }),
+    ).toEqual('Object {\n  "a": List\n    - Object {\n      "b": List\n        - Object {\n          "c": List\n            - Object {\n              "d": null,\n            },\n        },\n    },\n}');
+  });
+
   it('prints objects with no constructor', () => {
     expect(prettyFormat(Object.create(null))).toEqual('Object {}');
   });

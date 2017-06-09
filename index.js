@@ -469,21 +469,24 @@ function printPlugin(value, stack, env, refs, depth) {
     }
   }
 
-  if (!plugin) return null;
+  if (!plugin) return false;
 
   if (plugin.printOptimized) {
-    return plugin.printOptimized(value, stack, env, refs);
+    plugin.printOptimized(value, stack, env, refs);
   } else if (plugin.print) {
-    return printLegacyPlugin(plugin, value, env, refs, depth);
+    let result = printLegacyPlugin(plugin, value, env, refs, depth);
+    stack.char(result);
   } else {
     throw new Error('Plugin must have either printOptimized() or print() method');
   }
+
+  return true;
 }
 
 function printValue(value, stack, env, refs, depth) {
   if (env.opts.plugins.length) {
     let printed = printPlugin(value, stack, env, refs, depth);
-    if (printed !== null) return printed;
+    if (printed) return;
   }
 
   if (value === TRUE_VAL) return TRUE_PRINTED;

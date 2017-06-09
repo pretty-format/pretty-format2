@@ -192,9 +192,9 @@ const SET_PRINTED_OPEN = new Char('Set {');
 const MAP_JOIN = new Char(' => ');
 const OBJECT_JOIN = new Char(': ');
 
-const DOWN_OP = { op: 'DOWN' };
-const UP_OP = { op: 'UP' };
-const NEWLINE_OP = { op: 'NEWLINE' };
+const DOWN_OP = {op: 'DOWN'};
+const UP_OP = {op: 'UP'};
+const NEWLINE_OP = {op: 'NEWLINE'};
 
 class Stack {
   /*::
@@ -217,9 +217,17 @@ class Stack {
     return this.items.pop();
   }
 
-  down() { this.push(DOWN_OP); }
-  up() { this.push(UP_OP); }
-  newLine() { this.push(NEWLINE_OP); }
+  down() {
+    this.push(DOWN_OP);
+  }
+
+  up() {
+    this.push(UP_OP);
+  }
+
+  newLine() {
+    this.push(NEWLINE_OP);
+  }
 }
 
 class Refs {
@@ -404,39 +412,39 @@ function printPlugin(value, stack, env, refs, depth) {
   let colors = env.colors;
   let plugin;
 
- for (let p = 0; p < plugins.length; p++) {
-   let current = plugins[p];
-   if (typeof current === 'function') {
-     let result = current(value, stack, env, refs);
-     if (result) return current;
-   } else {
-     if (plugins[p].test(value)) {
-       plugin = plugins[p];
-       break;
-     }
-   }
- }
+  for (let p = 0; p < plugins.length; p++) {
+    let current = plugins[p];
+    if (typeof current === 'function') {
+      let result = current(value, stack, env, refs);
+      if (result) return current;
+    } else {
+      if (plugins[p].test(value)) {
+        plugin = plugins[p];
+        break;
+      }
+    }
+  }
 
- if (!plugin) {
-   return null;
- }
+  if (!plugin) {
+    return null;
+  }
 
- function print(value) {
-   return printStack(value, depth + 1, refs, env);
- }
+  function print(value) {
+    return printStack(value, depth + 1, refs, env);
+  }
 
- function indent(str) {
-   let indentation = createIndent((depth + 1) * env.opts.indent);
-   return indentation + str;
- }
+  function indent(str) {
+    let indentation = createIndent((depth + 1) * env.opts.indent);
+    return indentation + str;
+  }
 
- const opts = {
-   edgeSpacing: env.opts.edgeSpacing,
-   min: env.opts.min,
-   spacing: env.opts.spacing,
- };
+  const opts = {
+    edgeSpacing: env.opts.edgeSpacing,
+    min: env.opts.min,
+    spacing: env.opts.spacing,
+  };
 
- return plugin.print(value, print, indent, opts, colors);
+  return plugin.print(value, print, indent, opts, colors);
 }
 
 function printValue(value, stack, env, refs, depth) {
@@ -569,7 +577,9 @@ function validateOptions(opts) {
   });
 
   if (opts.min && opts.indent !== undefined && opts.indent !== 0) {
-    throw new Error('pretty-format: Options "min" and "indent" cannot be used together.');
+    throw new Error(
+      'pretty-format: Options "min" and "indent" cannot be used together.'
+    );
   }
 }
 
@@ -605,8 +615,14 @@ function normalizeOptions(opts /*: ?InitialOptions */) /*: Options */ {
 }
 
 function assertColor(key, val, color) {
-  if (!color || typeof color.close !== 'string' || typeof color.open !== 'string') {
-    throw new Error(`pretty-format: Option "theme" has a key "${key}" whose value "${val}" is undefined in ansi-styles.`);
+  if (
+    !color ||
+    typeof color.close !== 'string' ||
+    typeof color.open !== 'string'
+  ) {
+    throw new Error(
+      `pretty-format: Option "theme" has a key "${key}" whose value "${val}" is undefined in ansi-styles.`
+    );
   }
 }
 
@@ -635,7 +651,7 @@ function prettyFormat(value /*: mixed */, options /*: ?InitialOptions */) {
   let opts = normalizeOptions(options);
   let colors = createColors(opts);
 
-  let env = { opts, colors };
+  let env = {opts, colors};
   let refs = new Refs();
   let depth = 0;
 

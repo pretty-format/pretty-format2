@@ -1,6 +1,6 @@
 {
   "name": "pretty-format2",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Stringify any value. Better, faster, prettier.",
   "main": "index.js",
   "repository": "thejameskyle/pretty-format2",

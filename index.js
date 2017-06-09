@@ -16,11 +16,10 @@ export type Plugin = {
   test(value: mixed): boolean,
   printOptimized?: (
     val: any,
-    serialize: mixed => string,
-    indent: string => string,
-    opts: Options,
-    colors: Colors,
-  ) => string,
+    stack: Stack,
+    env: Env,
+    refs: Refs,
+  ) => mixed,
   print?: (
     val: any,
     serialize: mixed => string,

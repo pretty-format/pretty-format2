@@ -12,20 +12,23 @@ export type Colors = {
   value: {close: string, open: string},
 };
 
-export type PluginFunction = (value: mixed, stack: Stack, env: Env, refs: Refs) => void;
-
-export type PluginObject = {
+export type Plugin = {
   test(value: mixed): boolean,
-  print(
+  printOptimized?: (
     val: any,
     serialize: mixed => string,
     indent: string => string,
     opts: Options,
     colors: Colors,
-  ): string,
+  ) => string,
+  print?: (
+    val: any,
+    serialize: mixed => string,
+    indent: string => string,
+    opts: Options,
+    colors: Colors,
+  ) => string,
 };
-
-export type Plugin = PluginFunction | PluginObject;
 
 export type Plugins = Array<Plugin>;
 
@@ -434,27 +437,8 @@ function printSet(value, stack, env) {
   stack.push(SET_PRINTED_OPEN);
 }
 
-function printPlugin(value, stack, env, refs, depth) {
-  let plugins = env.opts.plugins;
+function printLegacyPlugin(plugin, value, env, refs, depth) {
   let colors = env.colors;
-  let plugin;
-
-  for (let p = 0; p < plugins.length; p++) {
-    let current = plugins[p];
-    if (typeof current === 'function') {
-      let result = current(value, stack, env, refs);
-      if (result) return current;
-    } else {
-      if (plugins[p].test(value)) {
-        plugin = plugins[p];
-        break;
-      }
-    }
-  }
-
-  if (!plugin) {
-    return null;
-  }
 
   function print(value) {
     return printStack(value, depth + 1, refs, env);
@@ -472,6 +456,29 @@ function printPlugin(value, stack, env, refs, depth) {
   };
 
   return plugin.print(value, print, indent, opts, colors);
+}
+
+function printPlugin(value, stack, env, refs, depth) {
+  let plugins = env.opts.plugins;
+  let plugin;
+
+  for (let p = 0; p < plugins.length; p++) {
+    let current = plugins[p];
+    if (current.test(value)) {
+      plugin = current;
+      break;
+    }
+  }
+
+  if (!plugin) return null;
+
+  if (plugin.printOptimized) {
+    return plugin.printOptimized(value, stack, env, refs);
+  } else if (plugin.print) {
+    return printLegacyPlugin(plugin, value, env, refs, depth);
+  } else {
+    throw new Error('Plugin must have either printOptimized() or print() method');
+  }
 }
 
 function printValue(value, stack, env, refs, depth) {

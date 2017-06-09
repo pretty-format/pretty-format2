@@ -228,6 +228,10 @@ class Stack {
   newLine() {
     this.push(NEWLINE_OP);
   }
+
+  char(value) {
+    this.push(new Char(value));
+  }
 }
 
 class Refs {
@@ -657,5 +661,7 @@ function prettyFormat(value /*: mixed */, options /*: ?InitialOptions */) {
 
   return printStack(value, depth, refs, env);
 }
+
+prettyFormat.printSeries = printSeries;
 
 module.exports = prettyFormat;

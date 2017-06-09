@@ -207,12 +207,12 @@ class Stack {
     this.items = [];
   }
 
-  push(value) {
+  push(value /*: any */) {
     this.length = this.length + 1;
     this.items.push(value);
   }
 
-  pop(value) {
+  pop() /*: any */ {
     this.length = this.length - 1;
     return this.items.pop();
   }
@@ -229,14 +229,18 @@ class Stack {
     this.push(NEWLINE_OP);
   }
 
-  char(value) {
+  char(value /*: string */) {
     this.push(new Char(value));
   }
 }
 
+/*::
+export type { Stack };
+*/
+
 class Refs {
   /*::
-  layers: Array<Set<mixed>>;
+  layers: Array<Set<any>>;
   */
 
   constructor() {
@@ -364,14 +368,14 @@ function printObjectMember(value, index, length, context, stack, env) {
   stack.push(value);
 }
 
-function filterSymbol(val) {
+function filterSymbol(val /*: mixed */) {
   let typeOf = typeof val;
   return typeOf !== 'symbol' && toString.call(val) !== '[object Symbol]';
 }
 
 function printObject(value, stack, env) {
   let keys = Object.keys(value).sort();
-  let symbols = getSymbols(value);
+  let symbols /*: Array<any> */ = getSymbols(value);
   if (symbols.length) {
     keys = keys.filter(filterSymbol).concat(symbols);
   }
@@ -381,7 +385,7 @@ function printObject(value, stack, env) {
     stack.push(OPEN_CURLY_CHAR);
   } else {
     stack.push(OBJECT_OPEN);
-    stack.push(new Char(value.constructor ? value.constructor.name : 'Object'));
+    stack.push(new Char(typeof value.constructor === 'function' ? value.constructor.name : 'Object'));
   }
 }
 
@@ -518,7 +522,9 @@ function printValue(value, stack, env, refs, depth) {
     return;
   }
 
-  if (value instanceof Error) return printError(value);
+  if (value instanceof Error) {
+    return printError(value);
+  }
 
   return printObject(value, stack, env);
 }
@@ -661,7 +667,5 @@ function prettyFormat(value /*: mixed */, options /*: ?InitialOptions */) {
 
   return printStack(value, depth, refs, env);
 }
-
-prettyFormat.printSeries = printSeries;
 
 module.exports = prettyFormat;

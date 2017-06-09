@@ -201,7 +201,6 @@ class Stack {
 
   down() { this.push(DOWN_OP); }
   up() { this.push(UP_OP); }
-
   newLine() { this.push(NEWLINE_OP); }
 }
 
@@ -352,7 +351,7 @@ function printObject(value, stack, env) {
     stack.push(OPEN_CURLY_CHAR);
   } else {
     stack.push(OBJECT_OPEN);
-    stack.push(new Char(value.constructor.name));
+    stack.push(new Char(value.constructor ? value.constructor.name : 'Object'));
   }
 }
 
@@ -427,9 +426,8 @@ function printValue(value, stack, env, refs, depth) {
     return OBJECT_MAX_PRINTED;
   }
 
-  if (env.callToJSON && typeof value.toJSON === 'function') {
-    printValue(value.toJSON(), stack, env, refs, depth);
-    return;
+  if (env.opts.callToJSON && typeof value.toJSON === 'function') {
+    return printValue(value.toJSON(), stack, env, refs, depth);
   }
 
   if (matchedArrayLike) {

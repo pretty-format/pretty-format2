@@ -281,7 +281,7 @@ class Refs {
   }
 }
 
-function series/*::<Value, Context>*/(
+const series = /*::<Value, Context>*/(
   context /*: Context */,
   series /*: Array<Value> */,
   stack /*: Stack */,
@@ -294,23 +294,25 @@ function series/*::<Value, Context>*/(
     stack: Stack,
     env: Env
   ) => mixed */
-) {
+) => {
   let length = series.length;
 
-  if (length > 0) {
+  for (let index = length - 1; index >= 0; index--) {
+    let value = series[index];
+
+    callback(value, index, length, context, stack, env);
+
+    if (index > 0) {
+      stack.newLine();
+    }
+  }
+}
+
+function seriesNested(context, array, stack, env, callback) {
+  if (array.length > 0) {
     stack.newLine();
     stack.up();
-
-    for (let index = length - 1; index >= 0; index--) {
-      let value = series[index];
-
-      callback(value, index, length, context, stack, env);
-
-      if (index > 0) {
-        stack.newLine();
-      }
-    }
-
+    series(context, array, stack, env, callback);
     stack.newLine();
     stack.down();
   }
@@ -372,7 +374,7 @@ function printArrayLikeMember(value, index, length, context, stack, env) {
 
 function printArrayLike(value, stack, env, matchedArrayLike) {
   stack.push(CLOSE_BRACKET_CHAR);
-  series(value, value, stack, env, printArrayLikeMember);
+  seriesNested(value, value, stack, env, printArrayLikeMember);
   if (env.opts.min) {
     stack.push(OPEN_BRACKET_CHAR);
   } else {
@@ -401,7 +403,7 @@ function printObject(value, stack, env) {
     keys = keys.filter(filterSymbol).concat(symbols);
   }
   stack.push(CLOSE_CURLY_CHAR);
-  series(value, keys, stack, env, printObjectMember);
+  seriesNested(value, keys, stack, env, printObjectMember);
   if (env.opts.min) {
     stack.push(OPEN_CURLY_CHAR);
   } else {
@@ -420,7 +422,7 @@ function printMapMember(value, index, length, context, stack, env) {
 function printMap(value, stack, env) {
   let items = Array.from(value.entries());
   stack.push(CLOSE_CURLY_CHAR);
-  series(value, items, stack, env, printMapMember);
+  seriesNested(value, items, stack, env, printMapMember);
   stack.push(MAP_PRINTED_OPEN);
 }
 
@@ -432,7 +434,7 @@ function printSetMember(value, index, length, context, stack, env) {
 function printSet(value, stack, env) {
   let items = Array.from(value.entries());
   stack.push(CLOSE_CURLY_CHAR);
-  series(value, items, stack, env, printSetMember);
+  seriesNested(value, items, stack, env, printSetMember);
   stack.push(SET_PRINTED_OPEN);
 }
 

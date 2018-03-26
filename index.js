@@ -485,7 +485,7 @@ function printPlugin(value, stack, env, refs, depth) {
   return true;
 }
 
-function printValue(value, stack, env, refs, depth) {
+function printValue(value, stack, env, refs, depth)/*: string | void */ {
   if (env.opts.plugins.length) {
     let printed = printPlugin(value, stack, env, refs, depth);
     if (printed) return;
